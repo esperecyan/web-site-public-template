@@ -1,1 +1,5 @@
-extends: '@esperecyan'
+extends:
+    - '@esperecyan'
+    - plugin:lit/recommended
+parserOptions:
+    ecmaVersion: 2022

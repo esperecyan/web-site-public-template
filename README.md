@@ -7,3 +7,7 @@
 
 [Node.js]: https://nodejs.org/ja/
 [Visual Studio Code]: https://azure.microsoft.com/products/visual-studio-code/
+
+ローカルサーバーの起動
+======================
+1. ターミナルで `npm start` を実行
