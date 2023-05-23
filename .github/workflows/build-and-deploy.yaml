@@ -8,6 +8,7 @@ jobs:
     build-and-deploy:
         permissions:
             contents: read
+        if: ${{ vars.DESTINATION_REPOSITORY }}
         runs-on: ubuntu-22.04
         steps:
             - uses: actions/checkout@v3
