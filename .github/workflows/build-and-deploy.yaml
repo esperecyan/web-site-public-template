@@ -10,14 +10,22 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    build-and-deploy:
+    build:
         timeout-minutes: 5
         permissions:
             contents: read
-        if: ${{ vars.DESTINATION_REPOSITORY }}
         runs-on: ubuntu-22.04
+        continue-on-error: true
         steps:
             - uses: actions/checkout@v3
+
+            - name: '*.html ファイルが存在しなければ、ビルド・デプロイは行わない'
+              id: judge-whether-to-build
+              uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b # v2.0.0
+              with:
+                files: ./docs/**/*.html
+                fail: true
+
             - uses: actions/setup-node@v3
               with:
                 node-version: '18'
@@ -44,10 +52,37 @@ jobs:
 
             - run: npm ci
             - run: npm run build
-            - uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3.9.3
+
+            - name: Upload artifact
+              uses: actions/upload-pages-artifact@v1
               with:
-                deploy_key: ${{ secrets.DESTINATION_REPOSITORY_DEPLOY_KEY }}
-                external_repository: ${{ vars.DESTINATION_REPOSITORY }}
-                publish_dir: ./docs
-                force_orphan: true
-                full_commit_message: deploy
+                path: ./docs
+
+            - id: result
+              run: echo "success=true" >> "$GITHUB_OUTPUT"
+
+        outputs:
+            whether-to-build: ${{ steps.judge-whether-to-build.outputs.files_exists }}
+            success: ${{ steps.result.outputs.success }}
+
+    deploy:
+        needs: build
+        if: ${{ needs.build.outputs.whether-to-build == 'true' }}
+
+        timeout-minutes: 2
+        permissions:
+            pages: write
+            id-token: write
+        runs-on: ubuntu-22.04
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+
+        steps:
+            - name: buildでエラーが起こった場合にエラー
+              if: ${{ needs.build.outputs.success != 'true' }}
+              run: exit 1
+
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v2
